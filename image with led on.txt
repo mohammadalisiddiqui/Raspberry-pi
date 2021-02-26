@@ -1,0 +1,49 @@
+import cv2
+import RPi.GPIO as gpio
+from time import sleep
+
+gpio.setmode(gpio.BCM)
+gpio.setup(21, gpio.OUT)
+
+vid = cv2.VideoCapture(0) 
+counter = 0
+state = False
+
+
+while(True): 
+    _, frame = vid.read() 
+    face_cascade = cv2.CascadeClassifier('/home/pi/opencv/data/haarcascades/haarcascade_frontalface_default.xml')
+
+    img = frame
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+    for (x,y,w,h) in faces:
+        img = cv2.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2)
+        roi_gray = gray[y:y+h, x:x+w]
+        roi_color = img[y:y+h, x:x+w]
+        counter += 1
+        
+    cv2.imshow('frame', img)
+    
+    if counter > 5:
+        cv2.imwrite('/home/pi/Desktop/detected.jpg', img)
+        state = True
+        break
+    
+    print(counter)
+    
+
+    if cv2.waitKey(1) & 0xFF == ord('q'): 
+        break
+
+
+vid.release()  
+cv2.destroyAllWindows()
+
+if state:
+    gpio.output(21, gpio.HIGH)
+    sleep(6)
+    gpio.output(21, gpio.LOW)
+
+    gpio.cleanup()
